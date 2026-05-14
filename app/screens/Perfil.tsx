@@ -1,5 +1,14 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Animated, ScrollView, Alert,} from 'react-native';
+import { 
+  View, 
+  Text, 
+  TouchableOpacity, 
+  StyleSheet, 
+  Animated, 
+  ScrollView, 
+  Alert, 
+  Modal
+} from 'react-native';
 import { CompositeScreenProps } from '@react-navigation/native';
 import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -22,16 +31,21 @@ const MENU_ITEMS = [
 ];
 
 export default function Perfil({ route, navigation }: Props) {
+  // ===== ESTADOS DO MODAL E INTERESSES =====
+  const [modalVisivel, setModalVisivel] = useState(false);
+  const [interesses, setInteresses] = useState<string[]>([]);
+  const causasDisponiveis = ["Educação", "Saúde", "Meio Ambiente"];
+
   // ===== OBTÉM NOME DO USUÁRIO =====
-  // Usa operador || para valor padrão caso não exista
   const usuario = route.params?.usuario || 'Visitante';
+  const inicial = usuario.charAt(0).toUpperCase();
   
   // ===== ANIMAÇÕES =====
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
   const avatarScale = useRef(new Animated.Value(0.7)).current;
 
-  // ===== ANIMAÇÕES DE ENTRADA =====
+  // ===== EFEITO DE ENTRADA =====
   useEffect(() => {
     Animated.parallel([
       Animated.timing(fadeAnim, { 
@@ -54,7 +68,15 @@ export default function Perfil({ route, navigation }: Props) {
     ]).start();
   }, []);
 
-  // ===== FUNÇÃO DE LOGOUT =====
+  // ===== FUNÇÕES =====
+  const toggleInteresses = (causa: string) => {
+    if (interesses.includes(causa)) {
+      setInteresses(interesses.filter(item => item !== causa));
+    } else {
+      setInteresses([...interesses, causa]);
+    }
+  };
+
   const handleLogout = () => {
     Alert.alert(
       'Sair',
@@ -65,30 +87,19 @@ export default function Perfil({ route, navigation }: Props) {
           text: 'Sair',
           style: 'destructive',
           onPress: () => {
-            // navigation.reset reseta a pilha de navegação
-            // Volta para Login e remove histórico
-            navigation.reset({ 
-              index: 0, 
-              routes: [{ name: 'Login' }] 
-            });
+            navigation.navigate('Login' as never);
           },
         },
       ]
     );
   };
 
-  // ===== FUNÇÃO GENÉRICA PARA ITENS DO MENU =====
   const handleMenuItem = (action: string) => {
     Alert.alert(
       'Em breve!', 
       `A funcionalidade "${action}" estará disponível em breve. 🐾`
     );
   };
-
-  // ===== OBTÉM PRIMEIRA LETRA DO NOME =====
-  // .charAt(0) pega o primeiro caractere
-  // .toUpperCase() converte para maiúscula
-  const inicial = usuario.charAt(0).toUpperCase();
 
   return (
     <View style={styles.root}>
@@ -108,7 +119,7 @@ export default function Perfil({ route, navigation }: Props) {
             }
           ]}
         >
-          {/* ===== AVATAR DO USUÁRIO ===== */}
+          
           <Animated.View 
             style={[
               styles.avatarArea, 
@@ -118,14 +129,31 @@ export default function Perfil({ route, navigation }: Props) {
             <View style={styles.avatarCircle}>
               <Text style={styles.avatarText}>{inicial}</Text>
             </View>
-            {/* Badge decorativo */}
             <View style={styles.avatarBadge}>
               <Text style={styles.avatarBadgeText}>🐾</Text>
             </View>
           </Animated.View>
-
+        
           <Text style={styles.userName}>{usuario}</Text>
           <Text style={styles.userSub}>Adotante em potencial</Text>
+
+          <View style={styles.interessesContainer}>
+            <Text style={styles.subtitle}>Causas que apoio:</Text>
+            {interesses.length === 0 ? (
+              <Text style={styles.emptyText}>Nenhum interesse selecionado.</Text>
+            ) : (
+              interesses.map(item => (
+                <Text key={item} style={styles.tagText}>• {item}</Text>
+              ))
+            )}
+            
+            <TouchableOpacity 
+              style={styles.btnEditar} 
+              onPress={() => setModalVisivel(true)}
+            >
+              <Text style={styles.btnEditarText}>✏️ Editar Interesses</Text>
+            </TouchableOpacity>
+          </View>
 
           {/* ===== CARD DE ESTATÍSTICAS ===== */}
           <View style={styles.statsCard}>
@@ -135,7 +163,6 @@ export default function Perfil({ route, navigation }: Props) {
               { val: '0', label: 'Adotados', emoji: '🏡' },
             ].map((s, i) => (
               <React.Fragment key={i}>
-                {/* Adiciona divisor entre stats, exceto antes do primeiro */}
                 {i > 0 && <View style={styles.statDivider} />}
                 <View style={styles.stat}>
                   <Text style={styles.statEmoji}>{s.emoji}</Text>
@@ -165,7 +192,6 @@ export default function Perfil({ route, navigation }: Props) {
                 key={i}
                 style={[
                   styles.menuItem, 
-                  // Adiciona borda inferior, exceto no último item
                   i < MENU_ITEMS.length - 1 && styles.menuItemBorder
                 ]}
                 onPress={() => handleMenuItem(item.action)}
@@ -176,7 +202,6 @@ export default function Perfil({ route, navigation }: Props) {
                   <Text style={styles.menuLabel}>{item.label}</Text>
                   <Text style={styles.menuSub}>{item.sub}</Text>
                 </View>
-                {/* Seta indicadora */}
                 <Text style={styles.menuArrow}>›</Text>
               </TouchableOpacity>
             ))}
@@ -194,6 +219,43 @@ export default function Perfil({ route, navigation }: Props) {
           <Text style={styles.version}>PetAdopt v1.0.0 · Feito com 🐾</Text>
         </Animated.View>
       </ScrollView>
+
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={modalVisivel}
+        onRequestClose={() => setModalVisivel(false)}
+      >
+        <View style={styles.container}>
+          <View style={styles.modalContainer}>
+            <Text style={styles.userName}>Quais causas preferes?</Text>
+            <Text style={styles.modalSubtitle}>Seleciona as tuas áreas de interesse:</Text>
+
+            {causasDisponiveis.map((causa) => {
+              const selecionado = interesses.includes(causa);
+              return (
+                <TouchableOpacity
+                  key={causa}
+                  style={[styles.opcaoBtn, selecionado && styles.opcaoSelecionada]}
+                  onPress={() => toggleInteresses(causa)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[styles.opcaoText, selecionado && styles.opcaoTextSelecionada]}>
+                    {selecionado ? "✓ " : ""}{causa}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+
+            <TouchableOpacity 
+              style={styles.btnSalvar} 
+              onPress={() => setModalVisivel(false)}
+            >
+              <Text style={styles.btnSalvar}>Salvar Interesses</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -201,117 +263,165 @@ export default function Perfil({ route, navigation }: Props) {
 // ===== ESTILOS =====
 const styles = StyleSheet.create({
   root: {
-    flex: 1,
-    backgroundColor: '#FDF6EE',
-  },
-  headerBg: {
+     flex: 1, 
+     backgroundColor: '#FDF6EE' 
+    },
+  headerBg: { 
     height: 200,
-    backgroundColor: '#3D2314',
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    overflow: 'hidden',
-  },
-  blobHeader1: {
+     backgroundColor: '#3D2314',
+     position: 'absolute', 
+     top: 0, 
+     left: 0, 
+     right: 0, 
+     overflow: 'hidden' 
+    },
+  blobHeader1: { 
     position: 'absolute',
     width: 200,
-    height: 200,
-    borderRadius: 100,
-    backgroundColor: '#E8A87C',
-    opacity: 0.2,
-    top: -60,
-    right: -40,
+    height: 200, 
+    borderRadius: 100, 
+    backgroundColor: '#E8A87C', 
+    opacity: 0.2, 
+    top: -60, 
+    right: -40 
   },
-  blobHeader2: {
-    position: 'absolute',
-    width: 150,
-    height: 150,
-    borderRadius: 75,
-    backgroundColor: '#F9C784',
-    opacity: 0.15,
-    bottom: -40,
-    left: 30,
+  blobHeader2: { 
+    position: 'absolute', 
+    width: 150, 
+    height: 150, 
+    borderRadius: 75, 
+    backgroundColor: '#F9C784', 
+    opacity: 0.15, 
+    bottom: -40, 
+    left: 30 
   },
-  container: {
-    alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingTop: 60,
-    paddingBottom: 40,
+  container: { 
+    alignItems: 'center', 
+    paddingHorizontal: 24, 
+    paddingTop: 60, 
+    paddingBottom: 40 
   },
-  avatarArea: {
-    position: 'relative',
-    marginBottom: 16,
+
+  avatarArea: { 
+    position: 'relative', 
+    marginBottom: 16 
   },
-  avatarCircle: {
-    width: 90,
-    height: 90,
-    borderRadius: 45,
-    backgroundColor: '#E8A87C',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 4,
-    borderColor: '#FDF6EE',
-    shadowColor: '#3D2314',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.2,
-    shadowRadius: 16,
-    elevation: 8,
+  avatarCircle: { 
+    width: 90, 
+    height: 90, 
+    borderRadius: 45, 
+    backgroundColor: '#E8A87C', 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    borderWidth: 4, 
+    borderColor: '#FDF6EE', 
+    shadowColor: '#3D2314', 
+    shadowOffset: { width: 0, height: 8 }, 
+    shadowOpacity: 0.2, 
+    shadowRadius: 16, 
+    elevation: 8 
   },
-  avatarText: {
-    fontSize: 36,
-    fontWeight: '800',
-    color: '#FFF',
+  avatarText: { 
+    fontSize: 36, 
+    fontWeight: '800', 
+    color: '#FFF' 
   },
-  avatarBadge: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: '#FFF',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#FDF6EE',
+  avatarBadge: { 
+    position: 'absolute', 
+    bottom: 0, 
+    right: 0, 
+    width: 28, 
+    height: 28, 
+    borderRadius: 14, 
+    backgroundColor: '#FFF', 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    borderWidth: 2, 
+    borderColor: '#FDF6EE' 
   },
   avatarBadgeText: { 
     fontSize: 14 
   },
-  userName: {
-    fontSize: 26,
-    fontWeight: '800',
-    color: '#3D2314',
-    letterSpacing: -0.5,
+
+  userName: { 
+    fontSize: 26, 
+    fontWeight: '800', 
+    color: '#b98e75ff', 
+    letterSpacing: -0.5 
   },
-  userSub: {
-    fontSize: 14,
-    color: '#9A7A6A',
-    marginTop: 4,
-    fontStyle: 'italic',
+  userSub: { 
+    fontSize: 14, 
+    color: '#9A7A6A', 
+    marginTop: 4, 
+    fontStyle: 'italic' 
   },
-  statsCard: {
-    flexDirection: 'row',
-    backgroundColor: '#FFF',
-    borderRadius: 20,
-    padding: 20,
-    marginTop: 24,
-    width: '100%',
-    shadowColor: '#3D2314',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 16,
-    elevation: 4,
+
+  interessesContainer: { 
+    width: '100%', 
+    marginTop: 24, 
+    backgroundColor: '#FFF', 
+    padding: 20, 
+    borderRadius: 20, 
+    shadowColor: '#3D2314', 
+    shadowOffset: { width: 0, height: 4 }, 
+    shadowOpacity: 0.05, 
+    shadowRadius: 10, 
+    elevation: 3 
   },
-  stat: {
-    flex: 1,
-    alignItems: 'center',
+  subtitle: { 
+    fontSize: 16, 
+    fontWeight: '700', 
+    color: '#3D2314', 
+    marginBottom: 10 
   },
-  statDivider: {
-    width: 1,
-    backgroundColor: '#EDE0D4',
-    marginVertical: 4,
+  tagText: { 
+    fontSize: 15, 
+    color: '#5A3A2A', 
+    marginBottom: 6, 
+    fontWeight: '500' 
+  },
+  emptyText: { 
+    fontSize: 14, 
+    color: '#9A7A6A', 
+    fontStyle: 'italic', 
+    marginBottom: 10 
+  },
+  btnEditar: { 
+    backgroundColor: '#FDF6EE', 
+    padding: 14, 
+    borderRadius: 12, 
+    alignItems: 'center', 
+    marginTop: 12, 
+    borderWidth: 1, 
+    borderColor: '#E8DED1' 
+  },
+  btnEditarText: { 
+    fontSize: 15, 
+    fontWeight: '700', 
+    color: '#3D2314' 
+  },
+
+  statsCard: { 
+    flexDirection: 'row', 
+    backgroundColor: '#FFF', 
+    borderRadius: 20, 
+    padding: 20, 
+    marginTop: 24, 
+    width: '100%', 
+    shadowColor: '#3D2314', 
+    shadowOffset: { width: 0, height: 4 }, 
+    shadowOpacity: 0.08, 
+    shadowRadius: 16, 
+    elevation: 4 
+  },
+  stat: { 
+    flex: 1, 
+    alignItems: 'center' 
+  },
+  statDivider: { 
+    width: 1, 
+    backgroundColor: '#EDE0D4', 
+    marginVertical: 4 
   },
   statEmoji: { 
     fontSize: 18, 
@@ -328,15 +438,16 @@ const styles = StyleSheet.create({
     fontWeight: '500', 
     marginTop: 2 
   },
-  tipCard: {
-    flexDirection: 'row',
-    backgroundColor: '#3D2314',
-    borderRadius: 20,
-    padding: 16,
-    marginTop: 16,
-    width: '100%',
-    gap: 12,
-    alignItems: 'center',
+
+  tipCard: { 
+    flexDirection: 'row', 
+    backgroundColor: '#3D2314', 
+    borderRadius: 20, 
+    padding: 16, 
+    marginTop: 16, 
+    width: '100%', 
+    gap: 12, 
+    alignItems: 'center' 
   },
   tipEmoji: { 
     fontSize: 28 
@@ -355,36 +466,36 @@ const styles = StyleSheet.create({
     color: '#BBA89A', 
     lineHeight: 18 
   },
-  menuTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#3D2314',
-    alignSelf: 'flex-start',
-    marginTop: 24,
-    marginBottom: 12,
-    letterSpacing: -0.3,
+  menuTitle: { 
+    fontSize: 18, 
+    fontWeight: '800', 
+    color: '#3D2314', 
+    alignSelf: 'flex-start', 
+    marginTop: 24, 
+    marginBottom: 12, 
+    letterSpacing: -0.3 
   },
-  menuCard: {
-    backgroundColor: '#FFF',
-    borderRadius: 20,
-    width: '100%',
-    shadowColor: '#3D2314',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    elevation: 3,
-    overflow: 'hidden',
+  menuCard: { 
+    backgroundColor: '#FFF', 
+    borderRadius: 20, 
+    width: '100%', 
+    shadowColor: '#3D2314', 
+    shadowOffset: { width: 0, height: 4 }, 
+    shadowOpacity: 0.06, 
+    shadowRadius: 12, 
+    elevation: 3, 
+    overflow: 'hidden' 
   },
-  menuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    gap: 12,
+  menuItem: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    paddingHorizontal: 16, 
+    paddingVertical: 14, 
+    gap: 12 
   },
-  menuItemBorder: {
-    borderBottomWidth: 1,
-    borderBottomColor: '#F5EDE4',
+  menuItemBorder: { 
+    borderBottomWidth: 1, 
+    borderBottomColor: '#F5EDE4' 
   },
   menuEmoji: { 
     fontSize: 20, 
@@ -409,24 +520,68 @@ const styles = StyleSheet.create({
     color: '#BBA89A', 
     fontWeight: '300' 
   },
-  logoutBtn: {
-    marginTop: 20,
-    width: '100%',
-    height: 50,
-    borderRadius: 14,
-    borderWidth: 2,
-    borderColor: '#E05C5C',
-    justifyContent: 'center',
-    alignItems: 'center',
+  logoutBtn: { 
+    marginTop: 20, 
+    width: '100%', 
+    height: 50, 
+    borderRadius: 14, 
+    borderWidth: 2, 
+    borderColor: '#E05C5C', 
+    justifyContent: 'center', 
+    alignItems: 'center' 
   },
-  logoutText: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#E05C5C',
+  logoutText: { 
+    fontSize: 15, 
+    fontWeight: '700', 
+    color: '#E05C5C' 
   },
-  version: {
-    fontSize: 12,
-    color: '#BBA89A',
-    marginTop: 20,
+  version: { 
+    fontSize: 12, 
+    color: '#BBA89A', 
+    marginTop: 20 
+  },
+  modalContainer: { 
+    width: '85%', 
+    backgroundColor: '#FFF', 
+    borderRadius: 24, 
+    padding: 24, 
+    elevation: 10 
+  },
+  modalSubtitle: { 
+    fontSize: 14, 
+    color: '#9A7A6A', 
+    marginBottom: 20 
+  },
+  opcaoBtn: { 
+    paddingVertical: 14, 
+    paddingHorizontal: 16, 
+    borderRadius: 12, 
+    borderWidth: 1, 
+    borderColor: '#E8DED1', 
+    marginBottom: 10, 
+    backgroundColor: '#FDF6EE' 
+  },
+  opcaoSelecionada: { 
+    backgroundColor: '#3D2314', 
+    borderColor: '#3D2314' 
+  },
+  opcaoText: { 
+    fontSize: 16, 
+    fontWeight: '600', 
+    color: '#5A3A2A', 
+    textAlign: 'center' 
+  },
+  opcaoTextSelecionada: { 
+    color: '#FFFFFF' 
+  },
+  btnSalvar: { 
+    backgroundColor: '#FFE8CC', 
+    padding: 8, 
+    borderRadius: 16, 
+    alignItems: 'center', 
+    marginTop: 2,
+    fontSize: 16, 
+    fontWeight: '800', 
+    color: '#3D2314'  
   },
 });

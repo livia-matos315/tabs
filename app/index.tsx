@@ -8,6 +8,7 @@ import Login from './screens/Login';
 import Home from './screens/Home';
 import Perfil from './screens/Perfil';
 import Detalhes from './screens/Detalhes';
+import Ongs from './screens/ongs';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<TabParamList>();
@@ -32,7 +33,8 @@ function TabNavigator({ route }: any) {
   const usuario = route?.params?.usuario || 'Visitante';
   return (
     <Tab.Navigator screenOptions={{ headerShown: false, tabBarShowLabel: false, tabBarStyle: { height: Platform.OS === 'ios' ? 100 : 80 } }}>
-      <Tab.Screen name="Explorar" component={Home} initialParams={{ usuario }} options={{ tabBarIcon: ({ focused }) => <TabIcon emoji="🔍" label="Explorar" focused={focused} /> }} />
+      <Tab.Screen name="Dashboard" component={Home} initialParams={{ usuario }} options={{ tabBarIcon: ({ focused }) => <TabIcon emoji="🔍" label="Dashboard" focused={focused} /> }} />
+      <Tab.Screen name="Explorar" component={Ongs} initialParams={{ usuario }} options={{ tabBarIcon: ({ focused }) => <TabIcon emoji="🏢" label="Explorar" focused={focused} /> }} />
       <Tab.Screen name="Perfil" component={Perfil} initialParams={{ usuario }} options={{ tabBarIcon: ({ focused }) => <TabIcon emoji="👤" label="Perfil" focused={focused} /> }} />
     </Tab.Navigator>
   );
@@ -47,3 +49,4 @@ export default function AppNavigation() {
     </Stack.Navigator>
   );
 }
+

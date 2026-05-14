@@ -5,7 +5,9 @@ export type RootStackParamList = {
 };
 
 export type TabParamList = {
+    Dashboard: {usuario:string};
     Explorar: {usuario:string};
-    Favoritos: {usuario:string};
     Perfil: {usuario:string};
+    Favoritos: {usuario:string};
+    
 };
